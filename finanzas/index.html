@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Finanzas</title>
+<meta name="description" content="Ingresos de proyectos y objetivo del mes">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Finanzas">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="../iconos/finanzas.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="../iconos/finanzas-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="../iconos/finanzas-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600&family=IBM+Plex+Sans:wght@400;600&family=JetBrains+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="../comun.css">
+<style>:root{--acc:#f0b44c}</style>
+<script src="../comun.js"></script>
+</head>
+<body>
+<main class="wrap">
+  <header><img src="../iconos/finanzas-192.png" alt=""><div><span class="tag">FINANZAS DEL MES · PROYECTOS</span><h1 id="titulo">Finanzas</h1></div></header>
+  <section class="card">
+    <div class="row"><label class="grow">Mes<input type="month" id="mesSel"></label>
+      <label class="grow">Objetivo (€)<input type="number" id="objetivo" inputmode="decimal" min="0" placeholder="300"></label></div>
+    <div class="row"><div class="grow"><span class="tag">INGRESADO</span><div class="num" id="total">0 €</div></div><span class="pill" id="estado"></span></div>
+    <div class="bar"><i id="barra"></i></div>
+    <div id="porProyecto" style="display:grid;gap:8px"></div>
+  </section>
+  <form class="card" id="form">
+    <h2>Apuntar ingreso</h2>
+    <div class="row"><label class="grow">Fecha<input type="date" id="fecha" required></label>
+      <label class="grow">Importe (€)<input type="number" id="importe" inputmode="decimal" step="0.01" min="0" required></label></div>
+    <label>Proyecto<select id="proyecto"><option>Webs para negocios</option><option>Canal de YouTube</option><option>Producto digital</option><option>Otro</option></select></label>
+    <label>Concepto<input id="concepto" placeholder="Ej.: web de una página para cafetería"></label>
+    <button class="main">Guardar ingreso</button>
+  </form>
+  <section class="card"><h2>Ingresos del mes</h2><ul class="list" id="lista"></ul></section>
+  <p class="empty">Solo ingresos de tus proyectos que apuntas tú. Se guardan en este móvil. Esta página no se conecta a ninguna cuenta.</p>
+  <div class="foot"><a href="../jarvis/" class="tag" style="text-decoration:none">← JARVIS</a>
+    <span class="row"><button class="ghost" onclick="exportar('finanzas','finanzas.json')">Exportar</button><button class="ghost" onclick="importar('finanzas',pintar)">Importar</button></span></div>
+</main>
+<script>
+const eur = n => n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' €';
+const leer = () => almacen.leer('finanzas', { objetivos: {}, ingresos: [] });
+mesSel.value = hoyISO().slice(0, 7); fecha.value = hoyISO();
+mesSel.onchange = pintar;
+objetivo.oninput = () => { const f = leer(); f.objetivos[mesSel.value] = +objetivo.value || 0; almacen.guardar('finanzas', f); pintar(false) };
+form.onsubmit = e => { e.preventDefault(); const f = leer();
+  f.ingresos.push({ id: Date.now(), fecha: fecha.value, importe: +importe.value, proyecto: proyecto.value, concepto: concepto.value.trim() });
+  almacen.guardar('finanzas', f); importe.value = ''; concepto.value = ''; mesSel.value = fecha.value.slice(0, 7); pintar() };
+function borrar(id) { if (!confirm('¿Borrar este ingreso?')) return; const f = leer(); f.ingresos = f.ingresos.filter(i => i.id !== id); almacen.guardar('finanzas', f); pintar() }
+function pintar(conObjetivo = true) {
+  const f = leer(), m = mesSel.value, its = f.ingresos.filter(i => i.fecha.startsWith(m)).sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const obj = f.objetivos[m] || 0, tot = its.reduce((a, i) => a + i.importe, 0);
+  if (conObjetivo) objetivo.value = obj || '';
+  titulo.textContent = new Date(m + '-15').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+  total.textContent = eur(tot);
+  const p = obj ? tot / obj : 0; barra.style.width = Math.min(100, p * 100) + '%';
+  estado.textContent = obj ? `${Math.round(p * 100)} % del objetivo` : 'Sin objetivo'; estado.className = 'pill ' + (!obj ? '' : p >= 1 ? 'ok' : p > 0 ? 'warn' : 'bad');
+  const grupos = {}; its.forEach(i => grupos[i.proyecto] = (grupos[i.proyecto] || 0) + i.importe);
+  porProyecto.innerHTML = Object.entries(grupos).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div><div class="row"><span class="grow" style="font-size:13px">${esc(k)}</span><span style="font:500 13px var(--f-mono)">${eur(v)}</span></div><div class="bar" style="height:6px"><i style="width:${v / tot * 100}%"></i></div></div>`).join('');
+  lista.innerHTML = its.length ? its.map(i => `<li><div class="grow"><b>${eur(i.importe)}</b> · ${esc(i.proyecto)}<small>${fechaLarga(i.fecha)}${i.concepto ? ' — ' + esc(i.concepto) : ''}</small></div><button class="x" aria-label="Borrar" onclick="borrar(${i.id})">✕</button></li>`).join('')
+    : '<li class="empty">Aún no hay ingresos este mes. El primero será el más difícil (y el que más se celebra).</li>';
+}
+pintar();
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jarvis</title>
+<meta name="description" content="Centro de mando de Jarvis">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jarvis">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="../iconos/jarvis.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="../iconos/jarvis-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="../iconos/jarvis-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600&family=IBM+Plex+Sans:wght@400;600&family=JetBrains+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="../comun.css">
+<style>:root{--acc:#ff7a3d}</style>
+<script src="../comun.js"></script>
+</head>
+<body>
+<style>
+.core{width:132px;aspect-ratio:1;position:relative;display:grid;place-items:center;margin:8px auto 0}
+.core i{position:absolute;inset:0;border-radius:50%;border:1px solid var(--line)}
+.core i+i{inset:12px;border:2px solid transparent;border-top-color:var(--core);border-right-color:var(--core);opacity:.7;animation:spin 14s linear infinite}
+.core b{width:58%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 38% 34%,#ffb08a,var(--core) 55%,#a8461f);box-shadow:0 0 40px #ff7a3d66;animation:pulse 3.2s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(.94)}}@keyframes spin{to{transform:rotate(360deg)}}
+.apps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.apps a{display:grid;gap:8px;justify-items:center;text-decoration:none;color:var(--ink);font-size:13px;padding:14px 6px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.apps img{width:58px;height:58px;border-radius:14px}
+.hora{font:600 40px/1 var(--f-mono);text-align:center;font-variant-numeric:tabular-nums}
+</style>
+<main class="wrap">
+  <div class="core" aria-hidden="true"><i></i><i></i><b></b></div>
+  <div style="text-align:center;display:grid;gap:6px">
+    <span class="tag">JARVIS · EN LÍNEA</span>
+    <div class="hora" id="hora">--:--</div>
+    <div id="fecha" class="tag" style="text-transform:none;letter-spacing:.02em;font-size:13px"></div>
+  </div>
+  <a href="https://claude.ai/code" style="text-decoration:none"><button class="main" style="width:100%">Hablar con Jarvis</button></a>
+  <nav class="apps">
+    <a href="../panel/"><img src="../iconos/panel-192.png" alt="">Panel diario</a>
+    <a href="../entreno/"><img src="../iconos/entreno-192.png" alt="">Entreno</a>
+    <a href="../finanzas/"><img src="../iconos/finanzas-192.png" alt="">Finanzas</a>
+  </nav>
+  <section class="card" id="resumen"><span class="tag">HOY DE UN VISTAZO</span><div id="res" class="empty">Cargando…</div></section>
+</main>
+<script>
+const reloj = () => { const d = new Date(); hora.textContent = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }); fecha.textContent = fechaLarga(hoyISO()) };
+reloj(); setInterval(reloj, 15000);
+const dia = almacen.leer('panel', {})[hoyISO()] || {}, hechos = Object.values(dia.rutina || {}).filter(Boolean).length;
+const ses = almacen.leer('entreno', []), lunes = (() => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10) })();
+const semana = ses.filter(s => s.fecha >= lunes).length;
+const fin = almacen.leer('finanzas', { objetivos: {}, ingresos: [] }), mes = hoyISO().slice(0, 7);
+const ing = fin.ingresos.filter(i => i.fecha.startsWith(mes)).reduce((a, i) => a + i.importe, 0), obj = fin.objetivos[mes] || 0;
+res.innerHTML = `<div class="row"><span class="grow">Rutina de hoy</span><span class="pill ${hechos >= 4 ? 'ok' : hechos ? 'warn' : 'bad'}">${hechos}/4</span></div>
+<div class="row"><span class="grow">Entrenos esta semana</span><span class="pill ${semana >= 3 ? 'ok' : semana ? 'warn' : 'bad'}">${semana}/3</span></div>
+<div class="row"><span class="grow">Ingresos del mes</span><span class="pill ${obj && ing >= obj ? 'ok' : ing ? 'warn' : 'bad'}">${ing.toLocaleString('es-ES')} €${obj ? ' / ' + obj.toLocaleString('es-ES') + ' €' : ''}</span></div>`;
+res.classList.remove('empty'); res.style.display = 'grid'; res.style.gap = '10px';
+</script>
+</body>
+</html>

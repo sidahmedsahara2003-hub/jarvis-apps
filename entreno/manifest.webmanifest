@@ -1,0 +1,16 @@
+{
+  "name": "Entreno",
+  "short_name": "Entreno",
+  "description": "Diario de entrenamiento",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "icons": [
+    { "src": "../iconos/entreno-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "../iconos/entreno-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "../iconos/entreno-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panel diario</title>
+<meta name="description" content="Prioridades y rutina del día">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Panel diario">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="../iconos/panel.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="../iconos/panel-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="../iconos/panel-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600&family=IBM+Plex+Sans:wght@400;600&family=JetBrains+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="../comun.css">
+<style>:root{--acc:#5aa9ff}</style>
+<script src="../comun.js"></script>
+</head>
+<body>
+<main class="wrap">
+  <header><img src="../iconos/panel-192.png" alt=""><div><span class="tag">PANEL DIARIO</span><h1 id="titulo"></h1></div></header>
+  <section class="card">
+    <div class="row"><h2 class="grow">Turno de hoy</h2>
+      <select id="turno" style="width:auto"><option value="">—</option><option>Mañana 07–15</option><option>Tarde 15–23</option><option>Noche 23–07</option><option>Libre</option></select></div>
+    <p class="empty" id="consejo"></p>
+  </section>
+  <section class="card">
+    <h2>3 prioridades</h2>
+    <label>1 · La más importante<input id="p0" placeholder="Ej.: grabar el Método nº 2"></label>
+    <label>2<input id="p1" placeholder="Ej.: avanzar la web"></label>
+    <label>3<input id="p2" placeholder="Ej.: llamar a…"></label>
+  </section>
+  <section class="card">
+    <div class="row"><h2 class="grow">Rutina</h2><span id="cuenta" class="pill"></span></div>
+    <div class="bar"><i id="barra"></i></div>
+    <div id="rutina" style="display:grid;gap:1px;background:var(--line);border-radius:10px;overflow:hidden"></div>
+  </section>
+  <section class="card"><h2>Últimos 7 días</h2><div id="semana" class="row" style="justify-content:space-between"></div></section>
+  <a href="../jarvis/" class="tag" style="text-decoration:none">← JARVIS</a>
+</main>
+<script>
+const HABITOS = ['Entreno', 'Leer 10 minutos', 'Un paso de un proyecto', 'Short del canal'];
+const datos = almacen.leer('panel', {}), hoy = hoyISO(); datos[hoy] ||= { turno: '', prioridades: ['', '', ''], rutina: {} };
+const d = datos[hoy], guardar = () => { almacen.guardar('panel', datos); pintar() };
+titulo.textContent = fechaLarga(hoy).replace(/^./, c => c.toUpperCase());
+turno.value = d.turno; turno.onchange = () => { d.turno = turno.value; guardar() };
+[0, 1, 2].forEach(i => { const e = document.getElementById('p' + i); e.value = d.prioridades[i]; e.oninput = () => { d.prioridades[i] = e.value; almacen.guardar('panel', datos) } });
+rutina.innerHTML = HABITOS.map((h, i) => `<label class="check"><input type="checkbox" data-h="${esc(h)}"><span>${esc(h)}</span></label>`).join('');
+rutina.querySelectorAll('input').forEach(c => { c.checked = !!d.rutina[c.dataset.h]; c.onchange = () => { d.rutina[c.dataset.h] = c.checked; guardar() } });
+function pintar() {
+  const n = HABITOS.filter(h => d.rutina[h]).length;
+  cuenta.textContent = `${n}/${HABITOS.length}`; cuenta.className = 'pill ' + (n === HABITOS.length ? 'ok' : n ? 'warn' : 'bad');
+  barra.style.width = (n / HABITOS.length * 100) + '%';
+  consejo.textContent = { 'Tarde 15–23': 'Las mañanas son tuyas: entreno y proyectos antes de las 13:30.', 'Mañana 07–15': 'Tarde libre: proyecto después de comer y entreno suave.', 'Noche 23–07': 'Descansa por la mañana; proyectos a media tarde.', 'Libre': 'Día libre: un bloque largo de proyecto y algo diferente.' }[d.turno] || 'Elige tu turno para ver cuándo encajar los proyectos.';
+  semana.innerHTML = [...Array(7)].map((_, k) => { const f = new Date(); f.setDate(f.getDate() - 6 + k); f.setMinutes(f.getMinutes() - f.getTimezoneOffset()); const iso = f.toISOString().slice(0, 10);
+    const r = (datos[iso] || {}).rutina || {}, m = HABITOS.filter(h => r[h]).length, c = m === 4 ? 'var(--ok)' : m ? 'var(--warn)' : 'var(--line)';
+    return `<div style="display:grid;justify-items:center;gap:6px"><span style="width:26px;height:26px;border-radius:50%;background:${c}" title="${m}/4"></span><span class="tag">${f.toLocaleDateString('es-ES', { weekday: 'narrow' })}</span></div>` }).join('');
+}
+pintar();
+</script>
+</body>
+</html>

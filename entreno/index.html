@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Entreno</title>
+<meta name="description" content="Diario de entrenamiento">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Entreno">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="../iconos/entreno.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="../iconos/entreno-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="../iconos/entreno-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600&family=IBM+Plex+Sans:wght@400;600&family=JetBrains+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="../comun.css">
+<style>:root{--acc:#3fbf86}</style>
+<script src="../comun.js"></script>
+</head>
+<body>
+<main class="wrap">
+  <header><img src="../iconos/entreno-192.png" alt=""><div><span class="tag">DIARIO DE ENTRENO</span><h1>Entreno</h1></div></header>
+  <section class="card">
+    <div class="row"><div class="grow"><span class="tag">ESTA SEMANA</span><div class="num" id="sem">0/3</div></div>
+      <div class="grow"><span class="tag">RACHA SEM.</span><div class="num" id="racha">0</div></div>
+      <div class="grow"><span class="tag">ESTE MES</span><div class="num" id="mes">0</div></div></div>
+    <div class="bar"><i id="barra"></i></div>
+  </section>
+  <form class="card" id="form">
+    <h2>Apuntar sesión</h2>
+    <div class="row"><label class="grow">Fecha<input type="date" id="fecha" required></label>
+      <label class="grow">Minutos<input type="number" id="min" inputmode="numeric" min="1" placeholder="45"></label></div>
+    <label>Tipo<select id="tipo"><option>Fuerza</option><option>Cardio</option><option>Movilidad</option><option>Deporte</option><option>Caminar</option></select></label>
+    <label>Ejercicios y notas<textarea id="notas" placeholder="Sentadilla 4×8 · 60 kg&#10;Flexiones 3×15&#10;Sensación: buena"></textarea></label>
+    <label>Cómo te sentiste<select id="animo"><option value="3">💪 Con energía</option><option value="2" selected>🙂 Normal</option><option value="1">😮‍💨 Costó</option></select></label>
+    <button class="main">Guardar sesión</button>
+  </form>
+  <section class="card"><h2>Historial</h2><ul class="list" id="lista"></ul></section>
+  <div class="foot"><a href="../jarvis/" class="tag" style="text-decoration:none">← JARVIS</a>
+    <span class="row"><button class="ghost" onclick="exportar('entreno','entreno.json')">Exportar</button><button class="ghost" onclick="importar('entreno',pintar)">Importar</button></span></div>
+</main>
+<script>
+const META = 3, CARAS = { 3: '💪', 2: '🙂', 1: '😮‍💨' };
+fecha.value = hoyISO();
+const lunesDe = iso => { const d = new Date(iso + 'T12:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.toISOString().slice(0, 10) };
+form.onsubmit = e => { e.preventDefault(); const s = almacen.leer('entreno', []);
+  s.push({ id: Date.now(), fecha: fecha.value, tipo: tipo.value, min: +min.value || 0, notas: notas.value.trim(), animo: +animo.value });
+  almacen.guardar('entreno', s); notas.value = ''; min.value = ''; pintar() };
+function borrar(id) { if (!confirm('¿Borrar esta sesión?')) return; almacen.guardar('entreno', almacen.leer('entreno', []).filter(s => s.id !== id)); pintar() }
+function pintar() {
+  const s = almacen.leer('entreno', []).sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id - a.id), hoy = hoyISO();
+  const n = s.filter(x => lunesDe(x.fecha) === lunesDe(hoy)).length;
+  sem.textContent = `${n}/${META}`; sem.style.color = n >= META ? 'var(--ok)' : n ? 'var(--warn)' : 'var(--muted)';
+  barra.style.width = Math.min(100, n / META * 100) + '%';
+  mes.textContent = s.filter(x => x.fecha.startsWith(hoy.slice(0, 7))).length;
+  const porSemana = {}; s.forEach(x => porSemana[lunesDe(x.fecha)] = (porSemana[lunesDe(x.fecha)] || 0) + 1);
+  let r = 0, l = new Date(lunesDe(hoy) + 'T12:00'); if ((porSemana[lunesDe(hoy)] || 0) < META) l.setDate(l.getDate() - 7);
+  while ((porSemana[l.toISOString().slice(0, 10)] || 0) >= META) { r++; l.setDate(l.getDate() - 7) } racha.textContent = r;
+  lista.innerHTML = s.length ? s.slice(0, 60).map(x => `<li><span>${CARAS[x.animo] || ''}</span><div class="grow"><b>${esc(x.tipo)}${x.min ? ' · ' + x.min + ' min' : ''}</b><small>${fechaLarga(x.fecha)}</small>${x.notas ? `<small style="white-space:pre-line;color:var(--ink);margin-top:4px">${esc(x.notas)}</small>` : ''}</div><button class="x" aria-label="Borrar" onclick="borrar(${x.id})">✕</button></li>`).join('')
+    : '<li class="empty">Aún no hay sesiones. La primera cuenta doble (en motivación).</li>';
+}
+pintar();
+</script>
+</body>
+</html>
